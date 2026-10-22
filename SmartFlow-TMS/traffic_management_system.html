@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartFlow TMS — Real-Time Traffic Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#05091a;--bg1:#0a1122;--bg2:#0f1830;--bg3:#162040;
+  --ac:#00d4aa;--ac2:#0091ff;--warn:#f59e0b;--dng:#ef4444;--ok:#10b981;
+  --txt1:#dde6f0;--txt2:#7a90a8;--txt3:#3a4a5c;
+  --bdr:rgba(255,255,255,0.07);--bdr2:rgba(0,212,170,0.25);
+  --sbw:228px;--hdr:56px;
+}
+body{font-family:'Barlow',sans-serif;background:var(--bg0);color:var(--txt1);min-block-size:100vh;overflow-x:hidden;font-size:14px}
+.hidden{display:none!important}
+button,input{font-family:'Barlow',sans-serif}
+
+/* === LOGIN === */
+#login-screen{display:flex;align-items:center;justify-content:center;min-block-size:100vh;background:var(--bg0)}
+.login-bg{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 40%, rgba(0,212,170,0.05) 0%, transparent 60%);pointer-events:none}
+.login-box{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:44px 40px;inline-size:400px;position:relative;z-index:1}
+.login-logo{display:flex;align-items:center;gap:12px;margin-block-end:32px}
+.logo-sq{inline-size:44px;block-size:44px;background:var(--ac);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#05091a}
+.login-brand h1{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--txt1)}
+.login-brand p{font-size:12px;color:var(--txt2);margin-block-start:2px}
+.form-lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt2);font-weight:600;margin-block-end:7px}
+.form-inp{inline-size:100%;background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;padding:11px 14px;color:var(--txt1);font-size:14px;outline:none;transition:border-color .2s;margin-block-end:18px}
+.form-inp:focus{border-color:var(--ac)}
+.form-inp::placeholder{color:var(--txt3)}
+.login-btn{inline-size:100%;background:var(--ac);border:none;border-radius:8px;padding:13px;color:#05091a;font-weight:700;font-size:15px;cursor:pointer;letter-spacing:.02em;transition:opacity .2s;margin-block-start:4px}
+.login-btn:hover{opacity:.88}
+.login-hint{background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;margin-block-start:20px;font-size:12px;color:var(--txt2);line-height:1.7}
+.login-hint code{color:var(--ac);font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(0,212,170,.1);padding:1px 5px;border-radius:3px}
+.login-err{color:var(--dng);font-size:13px;margin-block-start:-10px;margin-block-end:10px;display:none}
+
+/* === APP SHELL === */
+#app{display:flex;min-block-size:100vh}
+#sidebar{inline-size:var(--sbw);background:var(--bg1);border-inline-end:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;inset-block-start:0;inset-inline-start:0;inset-block-end:0;z-index:100}
+.sb-brand{block-size:var(--hdr);padding:0 18px;display:flex;align-items:center;gap:10px;border-block-end:1px solid var(--bdr)}
+.sb-brand-sq{inline-size:30px;block-size:30px;background:var(--ac);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#05091a;font-size:13px}
+.sb-brand-name{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:.02em;color:var(--txt1)}
+.sb-brand-name span{color:var(--ac)}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-sec{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--txt3);font-weight:700;padding:12px 10px 5px}
+.sb-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--txt2);font-size:13px;font-weight:500;border:none;background:none;inline-size:100%;text-align:start;transition:background .15s,color .15s}
+.sb-item:hover{background:var(--bg3);color:var(--txt1)}
+.sb-item.active{background:rgba(0,212,170,.12);color:var(--ac)}
+.sb-item svg{inline-size:17px;block-size:17px;flex-shrink:0}
+.sb-badge{margin-inline-start:auto;background:var(--dng);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sb-live{margin-inline-start:auto;inline-size:7px;block-size:7px;border-radius:50%;background:var(--ok);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.sb-footer{padding:14px 10px;border-block-start:1px solid var(--bdr)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-av{inline-size:32px;block-size:32px;border-radius:50%;background:var(--bg3);border:2px solid rgba(0,212,170,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ac);flex-shrink:0}
+.sb-ui{flex:1}
+.sb-uname{font-size:13px;font-weight:600;color:var(--txt1)}
+.sb-urole{font-size:11px;color:var(--txt2)}
+.sb-logout{background:none;border:none;color:var(--txt3);cursor:pointer;padding:4px;border-radius:4px;transition:color .2s}
+.sb-logout:hover{color:var(--dng)}
+
+/* === MAIN === */
+#main{margin-inline-start:var(--sbw);flex:1;display:flex;flex-direction:column;min-block-size:100vh}
+.topbar{block-size:var(--hdr);background:var(--bg1);border-block-end:1px solid var(--bdr);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;inset-block-start:0;z-index:50}
+.topbar-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700}
+.topbar-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--txt2);margin-inline-start:auto;background:var(--bg2);padding:5px 12px;border-radius:6px;border:1px solid var(--bdr)}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--ok)}
+.live-dot{inline-size:6px;block-size:6px;border-radius:50%;background:var(--ok);animation:blink 1.5s infinite}
+.content{padding:24px;flex:1}
+
+/* === STAT CARDS === */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-block-end:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:20px 22px;transition:border-color .2s;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;inset-block-start:0;inset-inline-start:0;inset-inline-end:0;block-size:2px;background:var(--ac);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.stat-card:hover{border-color:var(--bdr2)}
+.stat-card:hover::after{transform:scaleX(1)}
+.stat-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt2);font-weight:600;margin-block-end:10px;display:flex;align-items:center;gap:6px}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:var(--txt1);line-height:1}
+.stat-val.ac{color:var(--ac)}
+.stat-val.warn{color:var(--warn)}
+.stat-val.dng{color:var(--dng)}
+.stat-val.ok{color:var(--ok)}
+.stat-sub{font-size:12px;color:var(--txt2);margin-block-start:7px}
+.stat-sub .up{color:var(--dng)}
+.stat-sub .dn{color:var(--ok)}
+
+/* === TABLES === */
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden}
+.card-hdr{display:flex;align-items:center;padding:15px 20px;border-block-end:1px solid var(--bdr);gap:12px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600}
+.card-sub{font-size:12px;color:var(--txt2);margin-inline-start:auto}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(0,212,170,.1);color:var(--ac)}
+table{inline-size:100%;border-collapse:collapse}
+thead th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt2);font-weight:700;padding:10px 20px;text-align:start;border-block-end:1px solid var(--bdr);background:var(--bg1)}
+tbody tr{border-block-end:1px solid rgba(255,255,255,.04);transition:background .15s;cursor:default}
+tbody tr:last-child{border-block-end:none}
+tbody tr:hover{background:var(--bg3)}
+td{padding:12px 20px;vertical-align:middle}
+.td-name{font-weight:600;color:var(--txt1)}
+.td-mono{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--txt1)}
+.td-muted{color:var(--txt2)}
+
+/* === CONGESTION BADGES === */
+.cong{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.cong::before{content:'';inline-size:5px;block-size:5px;border-radius:50%;background:currentColor}
+.cong-H{background:rgba(239,68,68,.15);color:#ef4444}
+.cong-M{background:rgba(245,158,11,.15);color:#f59e0b}
+.cong-L{background:rgba(16,185,129,.15);color:#10b981}
+
+/* === MINI SPEED BAR === */
+.speed-bar{display:inline-flex;align-items:center;gap:8px}
+.sbar{block-size:4px;border-radius:2px;background:var(--bg3)}
+.sbar-fill{block-size:100%;border-radius:2px;transition:width .5s}
+
+/* === GRID LAYOUTS === */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.third-two{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.signals-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* === SIGNAL CARDS === */
+.sig-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .2s}
+.sig-card:hover{border-color:var(--bdr2)}
+.sig-card-name{font-size:13px;font-weight:600;color:var(--txt1)}
+.sig-card-loc{font-size:11px;color:var(--txt2);margin-block-start:1px}
+.sig-lights{display:flex;gap:7px;justify-content:center;padding:8px 0;background:var(--bg1);border-radius:8px}
+.slt{inline-size:26px;block-size:26px;border-radius:50%;opacity:.18;transition:opacity .3s,box-shadow .3s}
+.slt.on-red{opacity:1;box-shadow:0 0 18px rgba(239,68,68,.7);background:#ef4444}
+.slt.on-yellow{opacity:1;box-shadow:0 0 18px rgba(245,158,11,.7);background:#f59e0b}
+.slt.on-green{opacity:1;box-shadow:0 0 18px rgba(16,185,129,.7);background:#10b981}
+.slt.off-red{background:#ef4444}
+.slt.off-yellow{background:#f59e0b}
+.slt.off-green{background:#10b981}
+.sig-meta{display:flex;align-items:center;justify-content:space-between}
+.sig-timer{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--txt2)}
+.sig-timer span{color:var(--ac);font-size:16px;font-weight:500}
+.mode-btn{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .15s;letter-spacing:.04em}
+.mode-auto{background:rgba(0,212,170,.1);color:var(--ac);border-color:rgba(0,212,170,.3)}
+.mode-manual{background:rgba(245,158,11,.1);color:var(--warn);border-color:rgba(245,158,11,.3)}
+.sig-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.sbtn{padding:6px;border:1px solid var(--bdr);border-radius:6px;background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--txt2);transition:all .15s;letter-spacing:.02em}
+.sbtn-r:hover,.sbtn-r.sel{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
+.sbtn-y:hover,.sbtn-y.sel{background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.sbtn-g:hover,.sbtn-g.sel{background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)}
+
+/* === ALERTS === */
+.alert-feed{display:flex;flex-direction:column;gap:10px}
+.al-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;transition:border-color .2s}
+.al-item:hover{border-color:var(--bdr2)}
+.al-icon{inline-size:38px;block-size:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.al-H .al-icon{background:rgba(239,68,68,.15)}
+.al-M .al-icon{background:rgba(245,158,11,.15)}
+.al-L .al-icon{background:rgba(16,185,129,.15)}
+.al-body{flex:1}
+.al-title{font-size:14px;font-weight:600;color:var(--txt1);margin-block-end:3px}
+.al-detail{font-size:12px;color:var(--txt2);line-height:1.5}
+.al-meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.al-time{font-size:11px;color:var(--txt2);font-family:'JetBrains Mono',monospace}
+.al-status{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px}
+.st-active{background:rgba(239,68,68,.15);color:#ef4444}
+.st-monitoring{background:rgba(245,158,11,.15);color:#f59e0b}
+.st-resolved{background:rgba(16,185,129,.15);color:#10b981}
+.st-pending{background:rgba(59,130,246,.15);color:#3b82f6}
+
+/* === ANALYTICS SVG CHARTS === */
+.chart-body{padding:20px}
+.chart-body svg text{font-family:'JetBrains Mono',monospace}
+
+/* === MINI ALERT CARD (dashboard) === */
+.mini-al{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--bg3);margin-block-end:7px;transition:background .15s;cursor:default}
+.mini-al:hover{background:var(--bg3)}
+.mini-dot{inline-size:8px;block-size:8px;border-radius:50%;flex-shrink:0}
+.mini-al-body{flex:1}
+.mini-al-t{font-size:13px;font-weight:500;color:var(--txt1)}
+.mini-al-l{font-size:11px;color:var(--txt2)}
+.mini-al-tm{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt2)}
+
+/* === OVERVIEW MAP === */
+.city-map{background:var(--bg1);border-radius:10px;padding:16px;position:relative;min-block-size:220px;margin-block-end:0}
+.map-node{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
+.map-dot{inline-size:12px;block-size:12px;border-radius:50%;border:2px solid var(--bg1);transition:transform .2s}
+.map-dot:hover{transform:scale(1.5)}
+.map-label{position:absolute;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt2);white-space:nowrap;inset-block-start:14px;inset-inline-start:50%;transform:translateX(-50%)}
+.map-road-h{position:absolute;block-size:1px;background:rgba(255,255,255,.06)}
+.map-road-v{position:absolute;inline-size:1px;background:rgba(255,255,255,.06)}
+
+/* === PREDICTION BARS === */
+.pred-bar-wrap{display:flex;flex-direction:column;gap:10px}
+.pred-row{display:flex;align-items:center;gap:12px}
+.pred-lbl{font-size:12px;color:var(--txt2);inline-size:56px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.pred-track{flex:1;block-size:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.pred-fill{block-size:100%;border-radius:4px;transition:width .8s ease}
+.pred-pct{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--txt1);inline-size:40px;text-align:end}
+
+/* === UTILITY === */
+.mb16{margin-block-end:16px}
+.mb20{margin-block-end:20px}
+.flex-bet{display:flex;align-items:center;justify-content:space-between}
+.page-hdr{margin-block-end:22px}
+.page-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700}
+.page-hdr p{font-size:13px;color:var(--txt2);margin-block-start:4px}
+.btn-sm{padding:7px 14px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt1);transition:all .15s;letter-spacing:.02em}
+.btn-sm:hover{border-color:var(--bdr2);color:var(--ac)}
+.btn-ac{background:rgba(0,212,170,.15);border-color:var(--bdr2);color:var(--ac)}
+.btn-ac:hover{background:rgba(0,212,170,.25)}
+.section-divider{block-size:1px;background:var(--bdr);margin:20px 0}
+.empty-state{text-align:center;padding:40px;color:var(--txt2);font-size:13px}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar{inline-size:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--txt3)}
+
+@media(max-width:1280px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.signals-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.two-col,.third-two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-sq">SF</div>
+      <div class="login-brand">
+        <h1>SmartFlow <span style="color:var(--ac)">TMS</span></h1>
+        <p>Real-Time Traffic Management System</p>
+      </div>
+    </div>
+    <label class="form-lbl">Username</label>
+    <input class="form-inp" id="l-user" type="text" placeholder="Enter username" autocomplete="off">
+    <label class="form-lbl">Password</label>
+    <input class="form-inp" id="l-pass" type="password" placeholder="Enter password">
+    <div id="l-err" class="login-err">&#9888; Invalid credentials. Please try again.</div>
+    <button class="login-btn" onclick="doLogin()">Sign In to Dashboard</button>
+    <div class="login-hint">
+      <strong style="color:var(--txt1)">Demo Credentials</strong><br>
+      Username: <code>admin</code> &nbsp; Password: <code>admin123</code><br>
+      <span style="color:var(--txt3);font-size:11px;margin-block-start:4px;display:block">Datta Meghe Institute — FOST Dept. AY 2025-26</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="hidden">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-sq">SF</div>
+      <div class="sb-brand-name">Smart<span>Flow</span></div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">Overview</div>
+      <button class="sb-item active" onclick="nav('dashboard')" id="nav-dashboard">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
+        Dashboard
+        <span class="sb-live"></span>
+      </button>
+      <div class="sb-sec">Traffic</div>
+      <button class="sb-item" onclick="nav('monitoring')" id="nav-monitoring">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 13l4.553 2.276A1 1 0 0021 21.382V10.618a1 1 0 00-.553-.894L15 7m0 13V7m0 0L9 4"/></svg>
+        Monitoring
+      </button>
+      <button class="sb-item" onclick="nav('signals')" id="nav-signals">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="6" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="18" r="2" stroke-width="2"/><rect x="8" y="2" width="8" height="20" rx="2" stroke-width="2"/></svg>
+        Signal Control
+      </button>
+      <button class="sb-item" onclick="nav('alerts')" id="nav-alerts">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        Alerts
+        <span class="sb-badge" id="alert-count">4</span>
+      </button>
+      <div class="sb-sec">Analysis</div>
+      <button class="sb-item" onclick="nav('analytics')" id="nav-analytics">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Analytics
+      </button>
+      <button class="sb-item" onclick="nav('predictions')" id="nav-predictions">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        Predictions
+      </button>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av" id="sb-av-init">A</div>
+        <div class="sb-ui">
+          <div class="sb-uname" id="sb-uname">System Admin</div>
+          <div class="sb-urole">Traffic Authority</div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()" title="Logout">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div id="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="topbar-time" id="clock">--:--:--</div>
+    </div>
+    <div class="content" id="page-content"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  DATA
+// ============================================================
+const INTERSECTIONS = [
+  {id:1,name:'MG Road × FC Road',zone:'Central',vehicles:245,speed:22,congestion:'H',signal:'Red',mode:'auto',density:78,lat:38,lng:42},
+  {id:2,name:'University Circle',zone:'North',vehicles:178,speed:34,congestion:'M',signal:'Green',mode:'auto',density:54,lat:22,lng:28},
+  {id:3,name:'Deccan Gymkhana',zone:'Central',vehicles:312,speed:14,congestion:'H',signal:'Red',mode:'auto',density:92,lat:48,lng:55},
+  {id:4,name:'Shivajinagar Signal',zone:'East',vehicles:134,speed:41,congestion:'L',signal:'Green',mode:'auto',density:38,lat:30,lng:68},
+  {id:5,name:'Kothrud Depot',zone:'West',vehicles:267,speed:19,congestion:'H',signal:'Yellow',mode:'manual',density:85,lat:55,lng:30},
+  {id:6,name:'Wakad Bridge',zone:'NorthWest',vehicles:89,speed:52,congestion:'L',signal:'Green',mode:'auto',density:22,lat:15,lng:20},
+  {id:7,name:'Viman Nagar Circle',zone:'East',vehicles:201,speed:27,congestion:'M',signal:'Red',mode:'auto',density:61,lat:35,lng:80},
+  {id:8,name:'Hadapsar Ring Road',zone:'SouthEast',vehicles:156,speed:38,congestion:'M',signal:'Green',mode:'auto',density:47,lat:70,lng:72},
+];
+
+const INCIDENTS = [
+  {id:1,type:'Accident',icon:'💥',location:'MG Road × FC Road',severity:'H',status:'active',time:'09:23',detail:'3-vehicle collision. Lane 2 blocked. Ambulance en route.'},
+  {id:2,type:'Heavy Congestion',icon:'🚦',location:'Deccan Gymkhana',severity:'H',status:'active',time:'09:41',detail:'700+ vehicles queued. Signal timing extended.'},
+  {id:3,type:'Road Work',icon:'🚧',location:'Wakad Bridge',severity:'L',status:'monitoring',time:'08:15',detail:'Routine maintenance. Right lane closed until 14:00.'},
+  {id:4,type:'Vehicle Breakdown',icon:'🚗',location:'Kothrud Depot',severity:'M',status:'monitoring',time:'09:55',detail:'Truck stalled in intersection. Tow truck dispatched.'},
+  {id:5,type:'VIP Movement',icon:'🚔',location:'University Circle',severity:'L',status:'resolved',time:'08:50',detail:'Escort cleared. All lanes restored to normal.'},
+];
+
+const HOURLY = [42,38,51,69,85,93,88,76,64,71,82,91,79,66,58,63,74,88,95,87,72,61,49,34];
+const ZONE_DATA = [{z:'Central',v:557},{z:'East',v:335},{z:'West',v:267},{z:'NorthWest',v:89},{z:'North',v:178},{z:'SouthEast',v:156}];
+const VEHICLE_TYPES = [{t:'Cars',pct:58,c:'#00d4aa'},{t:'Bikes',pct:24,c:'#0091ff'},{t:'Buses',pct:11,c:'#f59e0b'},{t:'Trucks',pct:7,c:'#ef4444'}];
+
+// ============================================================
+//  STATE
+// ============================================================
+let S = {
+  page: 'dashboard',
+  intersections: JSON.parse(JSON.stringify(INTERSECTIONS)),
+  incidents: JSON.parse(JSON.stringify(INCIDENTS)),
+  signalTimers: {},
+  simTimer: null,
+  autoTimers: {},
+};
+
+// ============================================================
+//  AUTH
+// ============================================================
+function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pass').value.trim();
+  const err=document.getElementById('l-err');
+  if(u==='admin'&&p==='admin123'){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    startClock();startSim();
+    nav('dashboard');
+  } else {
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none',3000);
+  }
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+function doLogout(){
+  stopSim();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+}
+
+// ============================================================
+//  CLOCK
+// ============================================================
+function startClock(){
+  function tick(){
+    const now=new Date();
+    const t=now.toLocaleTimeString('en-IN',{hour12:false});
+    document.getElementById('clock').textContent=t;
+  }
+  tick();setInterval(tick,1000);
+}
+
+// ============================================================
+//  NAV
+// ============================================================
+function nav(page){
+  S.page=page;
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('nav-'+page);
+  if(btn)btn.classList.add('active');
+  const titles={dashboard:'Dashboard',monitoring:'Traffic Monitoring',signals:'Signal Control',alerts:'Alerts & Incidents',analytics:'Analytics',predictions:'Traffic Predictions'};
+  document.getElementById('topbar-title').textContent=titles[page]||page;
+  render();
+}
+
+function render(){
+  const p=S.page;
+  if(p==='dashboard')renderDashboard();
+  else if(p==='monitoring')renderMonitoring();
+  else if(p==='signals')renderSignals();
+  else if(p==='alerts')renderAlerts();
+  else if(p==='analytics')renderAnalytics();
+  else if(p==='predictions')renderPredictions();
+}
+
+// ============================================================
+//  SIMULATION
+// ============================================================
+function startSim(){
+  S.simTimer=setInterval(()=>{
+    S.intersections.forEach(ix=>{
+      // vary vehicle count
+      const delta=Math.floor(Math.random()*20)-9;
+      ix.vehicles=Math.max(20,Math.min(400,ix.vehicles+delta));
+      // vary speed inversely
+      ix.speed=Math.max(8,Math.min(65,Math.round(70-(ix.vehicles/400)*55+Math.random()*6)));
+      // update density
+      ix.density=Math.round((ix.vehicles/400)*100);
+      // update congestion
+      if(ix.density>70)ix.congestion='H';
+      else if(ix.density>40)ix.congestion='M';
+      else ix.congestion='L';
+      // auto signal cycling
+      if(ix.mode==='auto'){
+        if(!S.signalTimers[ix.id])S.signalTimers[ix.id]={tick:0,seq:['Red','Red','Red','Red','Green','Green','Green','Green','Green','Green','Yellow','Yellow']};
+        const st=S.signalTimers[ix.id];
+        st.tick=(st.tick+1)%st.seq.length;
+        ix.signal=st.seq[st.tick];
+      }
+    });
+    // re-render if on live pages
+    if(['dashboard','monitoring'].includes(S.page))render();
+    updateAlertBadge();
+  },3000);
+}
+
+function stopSim(){
+  clearInterval(S.simTimer);
+}
+
+function updateAlertBadge(){
+  const active=S.incidents.filter(i=>i.status==='active').length;
+  const badge=document.getElementById('alert-count');
+  if(badge)badge.textContent=active;
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function totalVehicles(){return S.intersections.reduce((s,x)=>s+x.vehicles,0)}
+function avgSpeed(){return Math.round(S.intersections.reduce((s,x)=>s+x.speed,0)/S.intersections.length)}
+function activeAlerts(){return S.incidents.filter(i=>i.status==='active').length}
+function highCong(){return S.intersections.filter(x=>x.congestion==='H').length}
+
+function speedColor(spd){
+  if(spd<20)return '#ef4444';
+  if(spd<35)return '#f59e0b';
+  return '#10b981';
+}
+
+function congLabel(c){return {H:'High',M:'Medium',L:'Low'}[c]}
+
+function sigColor(s){return s==='Red'?'#ef4444':s==='Yellow'?'#f59e0b':'#10b981'}
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+function renderDashboard(){
+  const tv=totalVehicles(),as=avgSpeed(),aa=activeAlerts(),hc=highCong();
+  let topAlerts=S.incidents.filter(i=>i.status==='active').slice(0,4);
+  let html=`
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-lbl">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Total Junctions
+    </div>
+    <div class="stat-val ac">${S.intersections.length}</div>
+    <div class="stat-sub">Active monitoring points</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/></svg>
+      Active Alerts
+    </div>
+    <div class="stat-val ${aa>2?'dng':'warn'}">${aa}</div>
+    <div class="stat-sub">Requires attention</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Avg Speed
+    </div>
+    <div class="stat-val" style="color:${speedColor(as)}">${as}</div>
+    <div class="stat-sub">km/h across city</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Total Vehicles
+    </div>
+    <div class="stat-val">${tv.toLocaleString()}</div>
+    <div class="stat-sub">Currently tracked</div>
+  </div>
+</div>
+
+<div class="third-two mb20">
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Live Traffic Monitor</span>
+      <span class="tag">LIVE</span>
+      <span class="card-sub">Updates every 3s</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Junction</th><th>Zone</th><th>Vehicles</th><th>Speed</th><th>Congestion</th><th>Signal</th>
+      </tr></thead>
+      <tbody>
+        ${S.intersections.map(ix=>`
+        <tr>
+          <td class="td-name">${ix.name}</td>
+          <td class="td-muted">${ix.zone}</td>
+          <td><span class="td-mono">${ix.vehicles}</span></td>
+          <td>
+            <div class="speed-bar">
+              <span class="td-mono" style="color:${speedColor(ix.speed)}">${ix.speed}</span>
+              <div class="sbar" style="inline-size:60px"><div class="sbar-fill" style="inline-size:${Math.min(100,ix.speed/65*100)}%;background:${speedColor(ix.speed)}"></div></div>
+            </div>
+          </td>
+          <td><span class="cong cong-${ix.congestion}">${congLabel(ix.congestion)}</span></td>
+          <td><span style="color:${sigColor(ix.signal)};font-weight:700;font-size:12px">⬤ ${ix.signal}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Active Alerts</span><span class="card-sub">${aa} unresolved</span></div>
+      <div style="padding:12px">
+        ${topAlerts.length?topAlerts.map(al=>`
+        <div class="mini-al">
+          <div class="mini-dot" style="background:${al.severity==='H'?'#ef4444':al.severity==='M'?'#f59e0b':'#10b981'}"></div>
+          <div class="mini-al-body">
+            <div class="mini-al-t">${al.type}</div>
+            <div class="mini-al-l">${al.location}</div>
+          </div>
+          <div class="mini-al-tm">${al.time}</div>
+        </div>`).join(''):`<div class="empty-state">No active alerts</div>`}
+        <button class="btn-sm" style="inline-size:100%;margin-block-start:8px;text-align:center" onclick="nav('alerts')">View All Alerts →</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Congestion Distribution</span></div>
+      <div style="padding:16px">
+        ${S.intersections.map(ix=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-block-end:8px">
+          <span style="font-size:11px;color:var(--txt2);inline-size:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ix.name.split('×')[0].trim()}</span>
+          <div style="flex:1;block-size:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="block-size:100%;inline-size:${ix.density}%;background:${ix.congestion==='H'?'#ef4444':ix.congestion==='M'?'#f59e0b':'#10b981'};border-radius:3px;transition:width .5s"></div>
+          </div>
+          <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--txt2);inline-size:28px;text-align:end">${ix.density}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+// ============================================================
+//  MONITORING PAGE
+// ============================================================
+function renderMonitoring(){
+  const html=`
+<div class="page-hdr flex-bet">
+  <div><h2>Traffic <span style="color:var(--ac)">Monitoring</span></h2><p>Real-time data from all ${S.intersections.length} monitoring points</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-sm">Export CSV</button>
+    <button class="btn-sm btn-ac" onclick="nav('signals')">Control Signals →</button>
+  </div>
+</div>
+
+<div class="stats-grid mb20">
+  <div class="stat-card">
+    <div class="stat-lbl">High Congestion</div>
+    <div class="stat-val dng">${S.intersections.filter(x=>x.congestion==='H').length}</div>
+    <div class="stat-sub">Junctions critical</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">Medium Congestion</div>
+    <div class="stat-val warn">${S.intersections.filter(x=>x.congestion==='M').length}</div>
+    <div class="stat-sub">Junctions moderate</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">Low Congestion</div>
+    <div class="stat-val ok">${S.intersections.filter(x=>x.congestion==='L').length}</div>
+    <div class="stat-sub">Junctions clear</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">Manual Mode</div>
+    <div class="stat-val warn">${S.intersections.filter(x=>x.mode==='manual').length}</div>
+    <div class="stat-sub">Signals under manual control</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hdr">
+    <span class="card-title">All Intersection Data</span>
+    <span class="tag">LIVE</span>
+    <span class="card-sub" style="margin-inline-start:auto">Last updated: just now</span>
+  </div>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Junction Name</th><th>Zone</th><th>Vehicles</th><th>Density</th><th>Avg Speed</th><th>Congestion</th><th>Signal</th><th>Mode</th>
+    </tr></thead>
+    <tbody>
+      ${S.intersections.map(ix=>`
+      <tr>
+        <td class="td-muted">${ix.id}</td>
+        <td class="td-name">${ix.name}</td>
+        <td class="td-muted">${ix.zone}</td>
+        <td class="td-mono">${ix.vehicles}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="inline-size:70px;block-size:5px;background:var(--bg3);border-radius:3px"><div style="block-size:100%;inline-size:${ix.density}%;background:${ix.congestion==='H'?'#ef4444':ix.congestion==='M'?'#f59e0b':'#10b981'};border-radius:3px;transition:width .5s"></div></div>
+            <span class="td-mono" style="font-size:12px">${ix.density}%</span>
+          </div>
+        </td>
+        <td><span class="td-mono" style="color:${speedColor(ix.speed)}">${ix.speed} km/h</span></td>
+        <td><span class="cong cong-${ix.congestion}">${congLabel(ix.congestion)}</span></td>
+        <td><span style="color:${sigColor(ix.signal)};font-weight:700;font-size:13px">⬤ ${ix.signal}</span></td>
+        <td><span style="font-size:11px;font-weight:700;color:${ix.mode==='auto'?'var(--ac)':'var(--warn)'};">${ix.mode.toUpperCase()}</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+// ============================================================
+//  SIGNAL CONTROL
+// ============================================================
+function renderSignals(){
+  const html=`
+<div class="page-hdr flex-bet">
+  <div><h2>Signal <span style="color:var(--ac)">Control</span></h2><p>Manage all ${S.intersections.length} traffic signals. Click a signal to change state.</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-sm" onclick="setAllAuto()">Set All Auto</button>
+    <button class="btn-sm btn-ac" onclick="emergencyMode()">🚨 Emergency Mode</button>
+  </div>
+</div>
+
+<div class="signals-grid">
+  ${S.intersections.map(ix=>`
+  <div class="sig-card" id="sigcard-${ix.id}">
+    <div>
+      <div class="sig-card-name">${ix.name}</div>
+      <div class="sig-card-loc">ID: ${String(ix.id).padStart(3,'0')} · Zone: ${ix.zone}</div>
+    </div>
+    <div class="sig-lights">
+      <div class="slt off-red ${ix.signal==='Red'?'on-red':''}"></div>
+      <div class="slt off-yellow ${ix.signal==='Yellow'?'on-yellow':''}"></div>
+      <div class="slt off-green ${ix.signal==='Green'?'on-green':''}"></div>
+    </div>
+    <div class="sig-meta">
+      <div class="sig-timer">State: <span style="color:${sigColor(ix.signal)}">${ix.signal}</span></div>
+      <button class="mode-btn ${ix.mode==='auto'?'mode-auto':'mode-manual'}" onclick="toggleMode(${ix.id})">${ix.mode==='auto'?'AUTO':'MANUAL'}</button>
+    </div>
+    <div class="sig-btns">
+      <button class="sbtn sbtn-r ${ix.signal==='Red'?'sel':''}" onclick="setSignal(${ix.id},'Red')">RED</button>
+      <button class="sbtn sbtn-y ${ix.signal==='Yellow'?'sel':''}" onclick="setSignal(${ix.id},'Yellow')">YEL</button>
+      <button class="sbtn sbtn-g ${ix.signal==='Green'?'sel':''}" onclick="setSignal(${ix.id},'Green')">GRN</button>
+    </div>
+    <div style="font-size:11px;color:var(--txt2);border-block-start:1px solid var(--bdr);padding-block-start:8px;margin-block-start:0">
+      Vehicles: <span style="color:var(--txt1);font-family:JetBrains Mono,monospace">${ix.vehicles}</span>
+      &nbsp;·&nbsp; Density: <span style="color:${ix.congestion==='H'?'#ef4444':ix.congestion==='M'?'#f59e0b':'#10b981'};font-family:JetBrains Mono,monospace">${ix.density}%</span>
+    </div>
+  </div>`).join('')}
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+function setSignal(id,state){
+  const ix=S.intersections.find(x=>x.id===id);
+  if(!ix)return;
+  ix.signal=state;
+  ix.mode='manual';
+  renderSignals();
+}
+
+function toggleMode(id){
+  const ix=S.intersections.find(x=>x.id===id);
+  if(!ix)return;
+  ix.mode=ix.mode==='auto'?'manual':'auto';
+  renderSignals();
+}
+
+function setAllAuto(){
+  S.intersections.forEach(ix=>ix.mode='auto');
+  renderSignals();
+}
+
+function emergencyMode(){
+  // Set all to green except randomly chosen "cleared" path
+  S.intersections.forEach(ix=>{ix.signal='Red';ix.mode='manual'});
+  // Simulate emergency path clearing
+  [2,4,6].forEach(id=>{
+    const ix=S.intersections.find(x=>x.id===id);
+    if(ix){ix.signal='Green';}
+  });
+  renderSignals();
+  setTimeout(()=>alert('🚨 Emergency route cleared!\nUniversity Circle → Shivajinagar → Wakad Bridge\nAll other signals set to RED.'),100);
+}
+
+// ============================================================
+//  ALERTS PAGE
+// ============================================================
+function renderAlerts(){
+  const statusClass={'active':'st-active','monitoring':'st-monitoring','resolved':'st-resolved','pending':'st-pending'};
+  const html=`
+<div class="page-hdr flex-bet">
+  <div><h2>Alerts &amp; <span style="color:var(--ac)">Incidents</span></h2><p>${S.incidents.filter(i=>i.status==='active').length} active incidents require attention</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-sm" onclick="addIncident()">+ Report Incident</button>
+    <button class="btn-sm btn-ac" onclick="resolveAll()">Resolve All</button>
+  </div>
+</div>
+
+<div class="two-col mb20">
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Incident Summary</span></div>
+    <div style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      ${[['Active',S.incidents.filter(i=>i.status==='active').length,'dng'],
+         ['Monitoring',S.incidents.filter(i=>i.status==='monitoring').length,'warn'],
+         ['Resolved',S.incidents.filter(i=>i.status==='resolved').length,'ok'],
+         ['Total',S.incidents.length,'ac']].map(([l,v,c])=>`
+      <div style="background:var(--bg1);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--${c})">${v}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-block-start:3px">${l}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Severity Breakdown</span></div>
+    <div style="padding:20px">
+      ${[['High','H','#ef4444'],['Medium','M','#f59e0b'],['Low','L','#10b981']].map(([l,k,c])=>{
+        const cnt=S.incidents.filter(i=>i.severity===k).length;
+        const pct=Math.round(cnt/S.incidents.length*100);
+        return `
+      <div style="display:flex;align-items:center;gap:10px;margin-block-end:12px">
+        <span style="font-size:12px;color:var(--txt2);inline-size:55px">${l}</span>
+        <div style="flex:1;block-size:8px;background:var(--bg3);border-radius:4px"><div style="block-size:100%;inline-size:${pct}%;background:${c};border-radius:4px"></div></div>
+        <span style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--txt1);inline-size:30px;text-align:end">${cnt}</span>
+      </div>`;}).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hdr"><span class="card-title">All Incidents</span><span class="card-sub">${S.incidents.length} total</span></div>
+  <div style="padding:16px">
+    <div class="alert-feed">
+      ${S.incidents.map(al=>`
+      <div class="al-item al-${al.severity}" id="al-${al.id}">
+        <div class="al-icon">${al.icon}</div>
+        <div class="al-body">
+          <div class="al-title">${al.type} — ${al.location}</div>
+          <div class="al-detail">${al.detail}</div>
+        </div>
+        <div class="al-meta">
+          <div class="al-time">${al.time}</div>
+          <div class="al-status ${statusClass[al.status]}">${al.status.toUpperCase()}</div>
+          ${al.status!=='resolved'?`<button class="btn-sm" style="margin-block-start:5px;font-size:10px;padding:3px 8px" onclick="resolveIncident(${al.id})">Resolve</button>`:''}
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+function resolveIncident(id){
+  const al=S.incidents.find(i=>i.id===id);
+  if(al)al.status='resolved';
+  renderAlerts();
+  updateAlertBadge();
+}
+
+function resolveAll(){
+  S.incidents.forEach(i=>i.status='resolved');
+  renderAlerts();
+  updateAlertBadge();
+}
+
+function addIncident(){
+  const types=['Road Work','Accident','Vehicle Breakdown','Flooding','Heavy Congestion','VIP Movement'];
+  const locs=S.intersections.map(x=>x.name);
+  const type=types[Math.floor(Math.random()*types.length)];
+  const loc=locs[Math.floor(Math.random()*locs.length)];
+  const icons={'Road Work':'🚧','Accident':'💥','Vehicle Breakdown':'🚗','Flooding':'🌊','Heavy Congestion':'🚦','VIP Movement':'🚔'};
+  const sev=['H','M','L'][Math.floor(Math.random()*3)];
+  const now=new Date();
+  const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  S.incidents.unshift({
+    id:S.incidents.length+1,type,icon:icons[type]||'⚠️',
+    location:loc,severity:sev,status:'active',time,
+    detail:'Newly reported incident. Traffic officers notified.'
+  });
+  renderAlerts();
+  updateAlertBadge();
+}
+
+// ============================================================
+//  ANALYTICS
+// ============================================================
+function renderAnalytics(){
+  const html=`
+<div class="page-hdr">
+  <h2>Traffic <span style="color:var(--ac)">Analytics</span></h2>
+  <p>Historical trends and zone-wise traffic distribution analysis</p>
+</div>
+
+<div class="card mb20">
+  <div class="card-hdr">
+    <span class="card-title">24-Hour Traffic Volume</span>
+    <span class="card-sub">Vehicles per junction per hour (today)</span>
+  </div>
+  <div class="chart-body">
+    ${buildLineChart(HOURLY,24,200,'var(--ac)')}
+  </div>
+</div>
+
+<div class="two-col mb20">
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Congestion by Zone</span></div>
+    <div class="chart-body">
+      ${buildBarChart(ZONE_DATA.map(d=>d.z),ZONE_DATA.map(d=>d.v),180)}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Vehicle Type Distribution</span></div>
+    <div class="chart-body" style="display:flex;align-items:center;justify-content:center;gap:32px">
+      ${buildDonut(VEHICLE_TYPES)}
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${VEHICLE_TYPES.map(t=>`
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="inline-size:10px;block-size:10px;border-radius:2px;background:${t.c}"></div>
+          <span style="font-size:13px;color:var(--txt2)">${t.t}</span>
+          <span style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--txt1);margin-inline-start:auto;inline-size:30px;text-align:end">${t.pct}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hdr"><span class="card-title">Peak Hours Analysis</span><span class="card-sub">Top congestion windows today</span></div>
+  <div style="padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    ${[{h:'08:00–09:00',v:93,l:'Morning Peak'},
+       {h:'13:00–14:00',v:91,l:'Lunch Hour'},
+       {h:'18:00–19:00',v:95,l:'Evening Peak'}].map(p=>`
+    <div style="background:var(--bg1);border-radius:10px;padding:16px;border:1px solid var(--bdr)">
+      <div style="font-family:JetBrains Mono,monospace;font-size:22px;font-weight:500;color:var(--dng)">${p.v}%</div>
+      <div style="font-size:13px;font-weight:600;margin:4px 0">${p.l}</div>
+      <div style="font-size:12px;color:var(--txt2)">${p.h}</div>
+      <div style="block-size:4px;background:var(--bg3);border-radius:2px;margin-block-start:10px"><div style="block-size:100%;inline-size:${p.v}%;background:#ef4444;border-radius:2px"></div></div>
+    </div>`).join('')}
+  </div>
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+function buildLineChart(data,points,height,color){
+  const W=600,H=height,pad={t:10,r:20,b:30,l:40};
+  const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const max=Math.max(...data)*1.1;
+  const xs=i=>(i/(points-1))*cW;
+  const ys=v=>cH-(v/max)*cH;
+  const pts=data.map((v,i)=>`${xs(i)},${ys(v)}`).join(' ');
+  const area=`M0,${cH} `+data.map((v,i)=>`L${xs(i)},${ys(v)}`).join(' ')+` L${cW},${cH} Z`;
+  const lines=Array.from({length:5},(_,i)=>{
+    const y=cH*(1-i/4);
+    return `<line x1="0" y1="${y.toFixed(1)}" x2="${cW}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    <text x="-6" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(120,144,168,0.8)">${Math.round(max*(i/4))}</text>`;
+  }).join('');
+  const xlabels=Array.from({length:7},(_,i)=>{
+    const idx=Math.round(i*(points-1)/6);
+    return `<text x="${xs(idx).toFixed(1)}" y="${cH+18}" text-anchor="middle" font-size="9" fill="rgba(120,144,168,0.8)">${String(idx).padStart(2,'0')}:00</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="inline-size:100%;font-family:JetBrains Mono,monospace">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <g transform="translate(${pad.l},${pad.t})">
+      ${lines}
+      <path d="${area}" fill="url(#ag)"/>
+      <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>
+      ${data.map((v,i)=>{
+        const x=xs(i),y=ys(v);
+        const isHigh=v>85;
+        return isHigh?`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${color}" opacity="0.8"/>`:'';}
+      ).join('')}
+      ${xlabels}
+    </g>
+  </svg>`;
+}
+
+function buildBarChart(labels,values,height){
+  const W=440,H=height,pad={t:10,r:10,b:40,l:50};
+  const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const max=Math.max(...values)*1.1;
+  const bw=cW/labels.length;
+  const bars=labels.map((l,i)=>{
+    const bh=(values[i]/max)*cH;
+    const x=i*bw+bw*0.15;
+    const bwInner=bw*0.7;
+    const y=cH-bh;
+    const hue=values[i]/max;
+    const c=`hsl(${160+(1-hue)*60},70%,${50+hue*10}%)`;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bwInner.toFixed(1)}" height="${bh.toFixed(1)}" fill="${c}" rx="3"/>
+    <text x="${(x+bwInner/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(221,230,240,0.7)">${values[i]}</text>
+    <text x="${(x+bwInner/2).toFixed(1)}" y="${(cH+14).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(120,144,168,0.8)">${l.substring(0,7)}</text>`;
+  }).join('');
+  const ylines=Array.from({length:4},(_,i)=>{
+    const y=cH*(1-i/3);
+    return `<line x1="0" y1="${y.toFixed(1)}" x2="${cW}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    <text x="-6" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(120,144,168,0.8)">${Math.round(max*(i/3))}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="inline-size:100%;font-family:JetBrains Mono,monospace">
+    <g transform="translate(${pad.l},${pad.t})">${ylines}${bars}</g></svg>`;
+}
+
+function buildDonut(data){
+  const W=140,H=140,r=55,ir=30,cx=70,cy=70;
+  let total=data.reduce((s,d)=>s+d.pct,0);
+  let angle=-90;
+  const slices=data.map(d=>{
+    const sweep=(d.pct/total)*360;
+    const a1=angle*Math.PI/180;
+    const a2=(angle+sweep)*Math.PI/180;
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
+    const ix1=cx+ir*Math.cos(a1),iy1=cy+ir*Math.sin(a1);
+    const ix2=cx+ir*Math.cos(a2),iy2=cy+ir*Math.sin(a2);
+    const lg=sweep>180?1:0;
+    const path=`M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${lg},0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
+    angle+=sweep;
+    return `<path d="${path}" fill="${d.c}" opacity="0.9"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${slices}
+    <circle cx="${cx}" cy="${cy}" r="${ir-3}" fill="var(--bg2)"/>
+    <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="11" fill="var(--txt2)" font-family="JetBrains Mono,monospace">Total</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="14" fill="var(--txt1)" font-family="JetBrains Mono,monospace">${total}%</text>
+  </svg>`;
+}
+
+// ============================================================
+//  PREDICTIONS
+// ============================================================
+function renderPredictions(){
+  const now=new Date();
+  const nextHours=Array.from({length:6},(_,i)=>{
+    const h=(now.getHours()+i+1)%24;
+    const base=HOURLY[h]||50;
+    const predicted=Math.min(100,Math.max(10,base+Math.floor(Math.random()*14-7)));
+    return {h:`${String(h).padStart(2,'0')}:00`,v:predicted};
+  });
+  const html=`
+<div class="page-hdr">
+  <h2>Traffic <span style="color:var(--ac)">Predictions</span></h2>
+  <p>ML-based traffic forecasting using historical patterns and real-time sensor data</p>
+</div>
+
+<div class="stats-grid mb20">
+  ${[{l:'Model Accuracy',v:'94.2%',c:'ok',sub:'Random Forest + LSTM'},{l:'Prediction Window',v:'6 hrs',c:'ac',sub:'Rolling forecast'},{l:'Data Points',v:'14,880',c:'txt1',sub:'Training samples'},{l:'Last Trained',v:'2 hrs',c:'txt2',sub:'ago — auto-updated'}].map(s=>`
+  <div class="stat-card">
+    <div class="stat-lbl">${s.l}</div>
+    <div class="stat-val" style="color:var(--${s.c})">${s.v}</div>
+    <div class="stat-sub">${s.sub}</div>
+  </div>`).join('')}
+</div>
+
+<div class="two-col mb20">
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Next 6-Hour Forecast</span><span class="card-sub">Congestion probability</span></div>
+    <div style="padding:20px">
+      <div class="pred-bar-wrap">
+        ${nextHours.map(h=>`
+        <div class="pred-row">
+          <span class="pred-lbl">${h.h}</span>
+          <div class="pred-track">
+            <div class="pred-fill" style="inline-size:${h.v}%;background:${h.v>70?'#ef4444':h.v>45?'#f59e0b':'#10b981'}"></div>
+          </div>
+          <span class="pred-pct" style="color:${h.v>70?'#ef4444':h.v>45?'#f59e0b':'#10b981'}">${h.v}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Hotspot Prediction</span><span class="card-sub">Next 2 hours</span></div>
+    <div style="padding:16px">
+      ${S.intersections.sort((a,b)=>b.density-a.density).slice(0,5).map((ix,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-block-end:1px solid var(--bdr)">
+        <div style="inline-size:24px;block-size:24px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${i<2?'#ef4444':'#f59e0b'}">${i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--txt1)">${ix.name}</div>
+          <div style="font-size:11px;color:var(--txt2)">Predicted density: ${Math.min(99,ix.density+Math.floor(Math.random()*10))}%</div>
+        </div>
+        <span class="cong cong-${ix.congestion}">${congLabel(ix.congestion)}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hdr"><span class="card-title">ML Model Information</span></div>
+  <div style="padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+    ${[{title:'Random Forest',desc:'Classifies congestion levels (Low/Med/High) based on time-of-day, day-of-week, weather, and event data.',acc:'96.1%',c:'#00d4aa'},
+       {title:'LSTM Network',desc:'Predicts vehicle count sequences for next 1–6 hours using temporal traffic patterns and sensor streams.',acc:'91.8%',c:'#0091ff'},
+       {title:'Anomaly Detector',desc:'Identifies unusual traffic spikes, accidents, or road blockages in real-time using Z-score analysis.',acc:'88.4%',c:'#f59e0b'}].map(m=>`
+    <div style="background:var(--bg1);border-radius:10px;padding:16px;border:1px solid var(--bdr)">
+      <div style="display:flex;align-items:center;gap:8px;margin-block-end:10px">
+        <div style="inline-size:8px;block-size:8px;border-radius:50%;background:${m.c}"></div>
+        <span style="font-size:14px;font-weight:600;color:var(--txt1)">${m.title}</span>
+      </div>
+      <p style="font-size:12px;color:var(--txt2);line-height:1.6;margin-block-end:12px">${m.desc}</p>
+      <div style="font-size:11px;color:var(--txt2)">Accuracy: <span style="font-family:JetBrains Mono,monospace;color:${m.c}">${m.acc}</span></div>
+    </div>`).join('')}
+  </div>
+</div>`;
+  document.getElementById('page-content').innerHTML=html;
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  // Allow pressing Enter on login fields
+  document.getElementById('l-user').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('l-pass').focus()});
+  document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+});
+</script>
+</body>
+</html>

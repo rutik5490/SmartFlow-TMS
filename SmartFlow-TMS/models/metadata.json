@@ -1,0 +1,24 @@
+{
+  "trained_at": "2026-04-24T16:08:24.924507",
+  "accuracy": 100.0,
+  "r2_score": 1.0,
+  "feature_importance": {
+    "hour": 0.0083,
+    "day_of_week": 0.0056,
+    "is_weekend": 0.0015,
+    "is_rush_hour": 0.001,
+    "vehicle_count": 0.1985,
+    "avg_speed": 0.0854,
+    "density": 0.6997
+  },
+  "training_samples": 10000,
+  "features": [
+    "hour",
+    "day_of_week",
+    "is_weekend",
+    "is_rush_hour",
+    "vehicle_count",
+    "avg_speed",
+    "density"
+  ]
+}
